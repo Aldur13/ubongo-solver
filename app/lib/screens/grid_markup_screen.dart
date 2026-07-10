@@ -1,0 +1,142 @@
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../data/rgb_image_codec.dart';
+import '../data/scanned_board_data.dart';
+import '../state/board_calibration.dart';
+import '../state/puzzle_session.dart';
+import '../widgets/grid_overlay_widget.dart';
+import '../widgets/size_stepper.dart';
+
+/// The manual `BoardShapeSource` UI: the corrected card photo underneath,
+/// a tappable grid on top.
+///
+/// When reached after a scan whose auto-detection succeeded
+/// ([ScannedBoardData.detectedShape] non-null), the grid opens
+/// pre-filled with the detected outline and shows a banner framing it as
+/// a hypothesis to confirm or fix, not settled fact — tapping cells here
+/// always works exactly the same way either way, so this doubles as the
+/// full manual-entry experience when detection wasn't available/failed.
+/// Whatever the user ends up submitting is diffed against the original
+/// detection (if any) to nudge future detections — see
+/// `state/board_calibration.dart`.
+class GridMarkupScreen extends ConsumerStatefulWidget {
+  final ScannedBoardData data;
+  const GridMarkupScreen({super.key, required this.data});
+
+  @override
+  ConsumerState<GridMarkupScreen> createState() => _GridMarkupScreenState();
+}
+
+class _GridMarkupScreenState extends ConsumerState<GridMarkupScreen> {
+  late final Uint8List _pngBytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _pngBytes = encodePngFromRgbImage(widget.data.corrected.image);
+  }
+
+  void _confirmAndSolve() {
+    final detected = widget.data.detectedShape;
+    if (detected != null) {
+      final finalCells = ref.read(puzzleSessionProvider).boardCells;
+      final added = finalCells.difference(detected.cells);
+      final removed = detected.cells.difference(finalCells);
+      ref.read(boardCalibrationProvider.notifier).recordCorrection(
+            added: added.length,
+            removed: removed.length,
+          );
+    }
+
+    ref.read(puzzleSessionProvider.notifier).solve();
+    context.push('/solution');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final session = ref.watch(puzzleSessionProvider);
+    final notifier = ref.read(puzzleSessionProvider.notifier);
+    final overlayColor = Theme.of(context).colorScheme.primary.withValues(alpha: 0.45);
+    final wasDetected = widget.data.detectedShape != null;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Mark the Board Outline')),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                SizeStepper(
+                  label: 'Cols',
+                  value: session.gridWidth,
+                  onChanged: (v) => notifier.setGridSize(v, session.gridHeight),
+                ),
+                SizeStepper(
+                  label: 'Rows',
+                  value: session.gridHeight,
+                  onChanged: (v) => notifier.setGridSize(session.gridWidth, v),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (wasDetected)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.auto_awesome, color: Theme.of(context).colorScheme.onPrimaryContainer),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Auto-detected this outline — tap any wrong cells to fix, then Solve.',
+                        style: TextStyle(color: Theme.of(context).colorScheme.onPrimaryContainer),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              const Text('Tap the cells that make up the puzzle outline shown in the photo.'),
+            const SizedBox(height: 8),
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: session.gridWidth / session.gridHeight,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.memory(_pngBytes, fit: BoxFit.fill),
+                    GridOverlayWidget(
+                      width: session.gridWidth,
+                      height: session.gridHeight,
+                      useAspectRatio: false,
+                      filledCells: session.boardCells,
+                      cellColors: {for (final c in session.boardCells) c: overlayColor},
+                      onCellTap: notifier.toggleCell,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: _confirmAndSolve,
+              child: const Text('Solve'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

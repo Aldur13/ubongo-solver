@@ -1,0 +1,32 @@
+# Dart/Flutter build artifacts and tooling caches, across the whole
+# workspace (app/ + packages/*).
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+**/build/
+**/.pub-cache/
+**/.pub/
+**/doc/api/
+**/.kotlin/
+
+# IDE
+*.iml
+*.ipr
+*.iws
+.idea/
+.vscode/
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Android Studio build artifacts
+app/android/app/debug
+app/android/app/profile
+app/android/app/release
+
+# Local secrets/signing (none checked in yet, but never commit if added later)
+**/key.properties
+**/*.keystore
+**/*.jks

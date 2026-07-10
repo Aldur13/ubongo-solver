@@ -1,0 +1,21 @@
+name: ubongo_vision
+description: Card perspective correction and piece-icon recognition for the Ubongo solver.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.12.2
+  flutter: ">=3.44.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  ubongo_core:
+    path: ../ubongo_core
+  image: ^4.5.4
+  cunning_document_scanner: ^1.2.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0

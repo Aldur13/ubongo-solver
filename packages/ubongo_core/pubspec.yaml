@@ -1,0 +1,14 @@
+name: ubongo_core
+description: Pure-Dart Ubongo puzzle solver (piece models, orientations, exact-cover solver).
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  collection: ^1.19.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.6
