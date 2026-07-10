@@ -108,7 +108,15 @@ class _GridMarkupScreenState extends ConsumerState<GridMarkupScreen> {
                 ),
               )
             else
-              const Text('Tap the cells that make up the puzzle outline shown in the photo.'),
+              Row(
+                children: [
+                  Icon(Icons.touch_app, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text('Tap the cells that make up the puzzle outline shown in the photo.'),
+                  ),
+                ],
+              ),
             const SizedBox(height: 8),
             Expanded(
               child: AspectRatio(
@@ -130,9 +138,10 @@ class _GridMarkupScreenState extends ConsumerState<GridMarkupScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            FilledButton(
+            FilledButton.icon(
               onPressed: _confirmAndSolve,
-              child: const Text('Solve'),
+              icon: const Icon(Icons.auto_fix_high),
+              label: const Text('Solve'),
             ),
           ],
         ),

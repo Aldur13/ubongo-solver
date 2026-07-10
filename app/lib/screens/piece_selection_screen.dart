@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ubongo_core/ubongo_core.dart';
 import 'package:ubongo_vision/ubongo_vision.dart';
 
 import '../data/rgb_image_codec.dart';
@@ -70,8 +71,9 @@ class _PieceSelectionScreenState extends ConsumerState<PieceSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final session = ref.watch(puzzleSessionProvider);
     final notifier = ref.read(puzzleSessionProvider.notifier);
+    // Watch so the piece counts below rebuild as the user taps +/-.
+    ref.watch(puzzleSessionProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Select Pieces')),
@@ -79,7 +81,7 @@ class _PieceSelectionScreenState extends ConsumerState<PieceSelectionScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             child: Image.memory(
               encodePngFromRgbImage(widget.corrected.image),
               height: 200,
@@ -87,17 +89,32 @@ class _PieceSelectionScreenState extends ConsumerState<PieceSelectionScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          const Text('Tap the pieces this puzzle requires.'),
+          Row(
+            children: [
+              Icon(Icons.touch_app, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              const Expanded(child: Text('Tap the pieces this puzzle requires.')),
+            ],
+          ),
           const SizedBox(height: 16),
           PieceSelector(
-            slots: session.slots,
-            onAdd: notifier.addSlot,
-            onRemove: notifier.removeSlotAt,
+            catalog: UbongoCatalog.classic,
+            solidCountOf: notifier.solidCountOf,
+            onSetSolidCount: notifier.setSolidCount,
+            grayCountOf: notifier.grayCountOf,
+            onSetGrayCount: notifier.setGrayCount,
           ),
           const SizedBox(height: 24),
-          FilledButton(
+          FilledButton.icon(
             onPressed: _detecting ? null : _continue,
-            child: Text(_detecting ? 'Analyzing photo…' : 'Continue to board outline'),
+            icon: _detecting
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.arrow_forward),
+            label: Text(_detecting ? 'Analyzing photo…' : 'Continue to board outline'),
           ),
         ],
       ),

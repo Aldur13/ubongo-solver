@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ubongo_core/ubongo_core.dart';
 
 import '../state/puzzle_session.dart';
 import '../widgets/grid_overlay_widget.dart';
@@ -39,7 +40,13 @@ class ManualEntryScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Text('Tap cells to mark the puzzle outline', style: Theme.of(context).textTheme.titleSmall),
+          Row(
+            children: [
+              Icon(Icons.grid_on, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              Text('Tap cells to mark the puzzle outline', style: Theme.of(context).textTheme.titleSmall),
+            ],
+          ),
           const SizedBox(height: 8),
           GridOverlayWidget(
             width: session.gridWidth,
@@ -49,17 +56,20 @@ class ManualEntryScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           PieceSelector(
-            slots: session.slots,
-            onAdd: notifier.addSlot,
-            onRemove: notifier.removeSlotAt,
+            catalog: UbongoCatalog.classic,
+            solidCountOf: notifier.solidCountOf,
+            onSetSolidCount: notifier.setSolidCount,
+            grayCountOf: notifier.grayCountOf,
+            onSetGrayCount: notifier.setGrayCount,
           ),
           const SizedBox(height: 24),
-          FilledButton(
+          FilledButton.icon(
             onPressed: () {
               notifier.solve();
               context.push('/solution');
             },
-            child: const Text('Solve'),
+            icon: const Icon(Icons.auto_fix_high),
+            label: const Text('Solve'),
           ),
         ],
       ),

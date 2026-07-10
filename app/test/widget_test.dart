@@ -58,8 +58,16 @@ void main() {
       }
 
       // P4 is the placeholder square tetromino (4 cells) — exactly fills
-      // a 2x2 board.
-      await tester.tap(find.text('P4 (4)'));
+      // a 2x2 board. Find its count row, then tap its "+" stepper button.
+      final p4Row = find
+          .ancestor(of: find.textContaining('P4 —'), matching: find.byType(Row))
+          .first;
+      final p4AddButton = find.descendant(
+        of: p4Row,
+        matching: find.byIcon(Icons.add_circle_outline),
+      );
+      await tester.ensureVisible(p4AddButton);
+      await tester.tap(p4AddButton);
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Solve'));

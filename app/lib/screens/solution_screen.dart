@@ -6,6 +6,7 @@ import 'package:ubongo_core/ubongo_core.dart';
 import '../state/puzzle_session.dart';
 import '../widgets/grid_overlay_widget.dart';
 import '../widgets/piece_placement_overlay.dart';
+import '../widgets/piece_shape_thumbnail.dart';
 
 class SolutionScreen extends ConsumerWidget {
   const SolutionScreen({super.key});
@@ -14,6 +15,7 @@ class SolutionScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(puzzleSessionProvider);
     final solution = session.solution;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Solution')),
@@ -22,11 +24,37 @@ class SolutionScreen extends ConsumerWidget {
         child: Column(
           children: [
             if (session.errorMessage != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.error_outline, color: colorScheme.onErrorContainer),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        session.errorMessage!,
+                        style: TextStyle(color: colorScheme.onErrorContainer),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else if (solution != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
-                child: Text(
-                  session.errorMessage!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.emoji_events, color: colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Text('Solved!', style: Theme.of(context).textTheme.titleLarge),
+                  ],
                 ),
               ),
             Expanded(
@@ -41,12 +69,13 @@ class SolutionScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             if (solution != null) _Legend(solution: solution),
             const SizedBox(height: 16),
-            FilledButton(
+            FilledButton.icon(
               onPressed: () {
                 ref.read(puzzleSessionProvider.notifier).reset();
                 context.go('/');
               },
-              child: const Text('New Puzzle'),
+              icon: const Icon(Icons.refresh),
+              label: const Text('New Puzzle'),
             ),
           ],
         ),
@@ -67,8 +96,10 @@ class _Legend extends StatelessWidget {
       children: [
         for (final placed in solution.placements)
           Chip(
-            avatar: CircleAvatar(
-              backgroundColor: PiecePlacementOverlay.colorForSlot(placed.slotIndex),
+            avatar: PieceShapeThumbnail(
+              cells: placed.piece.cells,
+              color: PiecePlacementOverlay.colorForSlot(placed.slotIndex),
+              cellSize: 8,
             ),
             label: Text('${placed.piece.id} — ${placed.piece.name}'),
           ),

@@ -93,6 +93,62 @@ class PuzzleSessionNotifier extends Notifier<PuzzleSessionState> {
     state = state.copyWith(slots: slots, clearSolution: true, clearError: true);
   }
 
+  /// How many [SolidSlot]s currently require exactly [piece].
+  int solidCountOf(Piece piece) =>
+      state.slots.whereType<SolidSlot>().where((s) => s.piece.id == piece.id).length;
+
+  /// How many [GraySlot]s currently require [cellCount] cells.
+  int grayCountOf(int cellCount) =>
+      state.slots.whereType<GraySlot>().where((s) => s.cellCount == cellCount).length;
+
+  /// Sets how many [SolidSlot]s require exactly [piece], adding or
+  /// removing entries as needed rather than requiring repeated
+  /// tap-to-add/tap-to-remove.
+  void setSolidCount(Piece piece, int count) {
+    final current = solidCountOf(piece);
+    if (count == current) return;
+
+    final slots = List<PieceSlot>.from(state.slots);
+    if (count > current) {
+      for (var i = current; i < count; i++) {
+        slots.add(SolidSlot(piece));
+      }
+    } else {
+      var toRemove = current - count;
+      for (var i = slots.length - 1; i >= 0 && toRemove > 0; i--) {
+        final slot = slots[i];
+        if (slot is SolidSlot && slot.piece.id == piece.id) {
+          slots.removeAt(i);
+          toRemove--;
+        }
+      }
+    }
+    state = state.copyWith(slots: slots, clearSolution: true, clearError: true);
+  }
+
+  /// Sets how many [GraySlot]s require [cellCount] cells.
+  void setGrayCount(int cellCount, int count) {
+    final current = grayCountOf(cellCount);
+    if (count == current) return;
+
+    final slots = List<PieceSlot>.from(state.slots);
+    if (count > current) {
+      for (var i = current; i < count; i++) {
+        slots.add(GraySlot(cellCount));
+      }
+    } else {
+      var toRemove = current - count;
+      for (var i = slots.length - 1; i >= 0 && toRemove > 0; i--) {
+        final slot = slots[i];
+        if (slot is GraySlot && slot.cellCount == cellCount) {
+          slots.removeAt(i);
+          toRemove--;
+        }
+      }
+    }
+    state = state.copyWith(slots: slots, clearSolution: true, clearError: true);
+  }
+
   void solve() {
     if (state.boardCells.isEmpty) {
       state = state.copyWith(

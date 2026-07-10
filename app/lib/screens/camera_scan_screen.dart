@@ -31,14 +31,24 @@ class _CameraScanScreenState extends State<CameraScanScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = _friendlyError(e);
         _scanning = false;
       });
     }
   }
 
+  String _friendlyError(Object e) {
+    final raw = e.toString();
+    if (raw.toLowerCase().contains('permission')) {
+      return "Camera permission is needed to scan a card. Allow it in your "
+          "phone's Settings > Apps > Ubongo Solver > Permissions, then try again.";
+    }
+    return "Couldn't open the scanner. Details: $raw";
+  }
+
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(title: const Text('Scan Card')),
       body: Center(
@@ -47,6 +57,16 @@ class _CameraScanScreenState extends State<CameraScanScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.document_scanner, size: 40, color: colorScheme.onPrimaryContainer),
+              ),
+              const SizedBox(height: 24),
               const Text(
                 'Point your camera at the puzzle card. The scanner detects '
                 'its edges and corrects perspective automatically.',
@@ -54,16 +74,36 @@ class _CameraScanScreenState extends State<CameraScanScreen> {
               ),
               const SizedBox(height: 24),
               if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    _error!,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: colorScheme.errorContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error_outline, color: colorScheme.onErrorContainer),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _error!,
+                          style: TextStyle(color: colorScheme.onErrorContainer),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               FilledButton.icon(
                 onPressed: _scanning ? null : _startScan,
-                icon: const Icon(Icons.camera_alt),
+                icon: _scanning
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.camera_alt),
                 label: Text(_scanning ? 'Scanning…' : 'Open Scanner'),
               ),
             ],
