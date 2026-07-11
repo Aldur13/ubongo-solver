@@ -3,24 +3,28 @@ import 'package:ubongo_core/ubongo_core.dart';
 
 import 'piece_shape_thumbnail.dart';
 
-const _palette = [
-  Color(0xFFE64545),
-  Color(0xFF3D7DD6),
-  Color(0xFF2FA365),
-  Color(0xFFE68A2E),
-  Color(0xFF9556C9),
-  Color(0xFF2FA8A8),
-];
-
-// P11 is overridden to orange (rather than the purple its catalog index
-// would otherwise cycle to) per user request; every other piece keeps its
-// palette-cycle color.
-const _colorOverrides = {
-  'P11': Color(0xFFE68A2E),
+// Colors sampled from a photo of the user's physical piece set — one
+// distinct color per piece (the real set doesn't repeat colors across its
+// 12 pieces, unlike the placeholder cyclic palette this replaced). Best
+// effort at matching each color to its corresponding catalog shape from
+// the photo; report a mismatch by piece ID and it can be corrected the
+// same way P11 was.
+const _pieceColors = {
+  'P1': Color(0xFF7A2F52), // maroon/plum
+  'P2': Color(0xFF3DA8D6), // light blue
+  'P3': Color(0xFF2A6E62), // dark teal
+  'P4': Color(0xFFD2542C), // red-orange
+  'P5': Color(0xFFA9C93B), // chartreuse
+  'P6': Color(0xFFD16C8C), // pink
+  'P7': Color(0xFFF0C233), // yellow
+  'P8': Color(0xFF34876E), // teal-green
+  'P9': Color(0xFF4C9E4C), // green
+  'P10': Color(0xFFDE9A40), // amber
+  'P11': Color(0xFFE67A22), // orange
+  'P12': Color(0xFF5A6B93), // slate blue
 };
 
-Color _colorFor(int index, String pieceId) =>
-    _colorOverrides[pieceId] ?? _palette[index % _palette.length];
+Color _colorFor(String pieceId) => _pieceColors[pieceId] ?? Colors.grey;
 
 /// The "Required pieces" picker: for each catalog piece, a shape diagram
 /// (see [PieceShapeThumbnail] — deliberately a diagram, not a photo, since
@@ -66,7 +70,7 @@ class PieceSelector extends StatelessWidget {
           _PieceCountRow(
             thumbnail: PieceShapeThumbnail(
               cells: catalog[i].cells,
-              color: _colorFor(i, catalog[i].id),
+              color: _colorFor(catalog[i].id),
             ),
             label: '${catalog[i].id} — ${catalog[i].name} (${catalog[i].cellCount} cells)',
             count: solidCountOf(catalog[i]),
