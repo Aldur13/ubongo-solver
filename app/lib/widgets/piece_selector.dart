@@ -3,25 +3,22 @@ import 'package:ubongo_core/ubongo_core.dart';
 
 import 'piece_shape_thumbnail.dart';
 
-// Colors sampled from a photo of the user's physical piece set — one
+// Colors confirmed by the user against their physical piece set — one
 // distinct color per piece (the real set doesn't repeat colors across its
-// 12 pieces, unlike the placeholder cyclic palette this replaced). Best
-// effort at matching each color to its corresponding catalog shape from
-// the photo; report a mismatch by piece ID and it can be corrected the
-// same way P11 was.
+// 12 pieces, unlike the placeholder cyclic palette this replaced).
 const _pieceColors = {
-  'P1': Color(0xFF7A2F52), // maroon/plum
+  'P1': Color(0xFF9556C9), // purple
   'P2': Color(0xFF3DA8D6), // light blue
-  'P3': Color(0xFF2A6E62), // dark teal
-  'P4': Color(0xFFD2542C), // red-orange
-  'P5': Color(0xFFA9C93B), // chartreuse
-  'P6': Color(0xFFD16C8C), // pink
+  'P3': Color(0xFF2FA8A8), // turquoise
+  'P4': Color(0xFFE64545), // red
+  'P5': Color(0xFFD2B48C), // beige
+  'P6': Color(0xFF7CC576), // light green
   'P7': Color(0xFFF0C233), // yellow
-  'P8': Color(0xFF34876E), // teal-green
-  'P9': Color(0xFF4C9E4C), // green
-  'P10': Color(0xFFDE9A40), // amber
+  'P8': Color(0xFF2C4A8C), // dark blue
+  'P9': Color(0xFF2E7D4F), // dark green
+  'P10': Color(0xFFD16C8C), // pink
   'P11': Color(0xFFE67A22), // orange
-  'P12': Color(0xFF5A6B93), // slate blue
+  'P12': Color(0xFFDE9A40), // yellow-orange
 };
 
 Color _colorFor(String pieceId) => _pieceColors[pieceId] ?? Colors.grey;
