@@ -81,6 +81,33 @@ void main() {
       expect(result.cells, expected.cells);
     });
 
+    test('boardRegion locates the detected grid within the photo', () async {
+      const cellPixels = 40;
+      const gridOffsetX = 120;
+      const gridOffsetY = 200;
+      final outline = {c(0, 0), c(0, 1), c(1, 0)};
+      final image = renderSyntheticCard(
+        gridWidth: 4,
+        gridHeight: 4,
+        outlineCells: outline,
+        cellPixels: cellPixels,
+        gridOffsetX: gridOffsetX,
+        gridOffsetY: gridOffsetY,
+        canvasMargin: 60,
+      );
+
+      final result = await detectBoardShape(image);
+
+      expect(result, isNotNull);
+      final region = result!.boardRegion;
+      // The outline's tight bounding box: 2x2 cells starting at the grid
+      // origin. One pixel of slack per edge for threshold/rounding.
+      expect(region.left * image.width, closeTo(gridOffsetX, 2));
+      expect(region.top * image.height, closeTo(gridOffsetY, 2));
+      expect(region.width * image.width, closeTo(result.width * cellPixels, 2 * result.width));
+      expect(region.height * image.height, closeTo(result.height * cellPixels, 2 * result.height));
+    });
+
     test('returns null for a photo with no light-colored board region at all', () async {
       final image = RgbImage.blank(300, 300, r: 150, g: 90, b: 40);
 

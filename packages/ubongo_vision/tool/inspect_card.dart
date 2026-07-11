@@ -178,6 +178,12 @@ String _summaryJson({
         : {
             'width': shape.width,
             'height': shape.height,
+            'boardRegion': {
+              'left': shape.boardRegion.left,
+              'top': shape.boardRegion.top,
+              'width': shape.boardRegion.width,
+              'height': shape.boardRegion.height,
+            },
             'cells': (shape.cells.toList()
                   ..sort((a, b) {
                     final rowCmp = a.row.compareTo(b.row);

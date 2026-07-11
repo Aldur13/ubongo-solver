@@ -84,6 +84,34 @@ void main() {
     });
   });
 
+  group('Silhouette.largestComponentWithOffset', () {
+    test('reports the component bounding box origin within the mask', () {
+      final image = RgbImage.blank(20, 20);
+      for (var y = 7; y < 12; y++) {
+        for (var x = 4; x < 9; x++) {
+          image.setPixel(x, y, 0, 0, 0);
+        }
+      }
+
+      final (:mask, :offsetX, :offsetY) =
+          Silhouette.threshold(image).largestComponentWithOffset();
+
+      expect(offsetX, 4);
+      expect(offsetY, 7);
+      expect(mask.width, 5);
+      expect(mask.height, 5);
+    });
+
+    test('all-background mask reports a (0,0) offset with the trivial empty mask', () {
+      final (:mask, :offsetX, :offsetY) =
+          Silhouette.filled(10, 10, false).largestComponentWithOffset();
+
+      expect(offsetX, 0);
+      expect(offsetY, 0);
+      expect(mask.foregroundCount, 0);
+    });
+  });
+
   group('Silhouette.fillEnclosedHoles', () {
     test('fills a hole fully enclosed by a ring, leaves open background alone', () {
       // 7x7 ring (border of a 7x7 square, one pixel thick) around a hole.

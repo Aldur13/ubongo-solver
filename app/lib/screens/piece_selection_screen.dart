@@ -9,6 +9,7 @@ import 'package:ubongo_vision/ubongo_vision.dart';
 import '../data/rgb_image_codec.dart';
 import '../data/scanned_board_data.dart';
 import '../state/board_calibration.dart';
+import '../state/developer_mode.dart';
 import '../state/puzzle_session.dart';
 import '../widgets/piece_selector.dart';
 
@@ -43,6 +44,18 @@ class PieceSelectionScreen extends ConsumerStatefulWidget {
 
 class _PieceSelectionScreenState extends ConsumerState<PieceSelectionScreen> {
   bool _detecting = false;
+  Uint8List? _previewPngBytes;
+
+  @override
+  void initState() {
+    super.initState();
+    // Encoded once, off the UI isolate, at display resolution — encoding
+    // the full-resolution photo synchronously in build() ran on every
+    // piece-count tap and cost ~0.5s of jank each time.
+    encodeDisplayPngAsync(DisplayPngArgs(widget.corrected.image)).then((bytes) {
+      if (mounted) setState(() => _previewPngBytes = bytes);
+    });
+  }
 
   /// Debug-only export of exactly what `NativeScannerImpl` produced, so a
   /// real device's scan can be pulled off the phone and inspected with
@@ -91,12 +104,16 @@ class _PieceSelectionScreenState extends ConsumerState<PieceSelectionScreen> {
     final notifier = ref.read(puzzleSessionProvider.notifier);
     // Watch so the piece counts below rebuild as the user taps +/-.
     ref.watch(puzzleSessionProvider);
+    final developerMode = ref.watch(developerModeProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Select Pieces'),
         actions: [
-          if (kDebugMode)
+          // Not kDebugMode-gated: scan exports are how detection failures
+          // get diagnosed, and users test scanning on release builds — the
+          // Settings > Developer mode toggle exposes this there.
+          if (kDebugMode || developerMode)
             IconButton(
               icon: const Icon(Icons.ios_share),
               tooltip: 'Share corrected scan (debug)',
@@ -109,11 +126,16 @@ class _PieceSelectionScreenState extends ConsumerState<PieceSelectionScreen> {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.memory(
-              encodePngFromRgbImage(widget.corrected.image),
-              height: 200,
-              fit: BoxFit.contain,
-            ),
+            child: _previewPngBytes == null
+                ? const SizedBox(
+                    height: 200,
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : Image.memory(
+                    _previewPngBytes!,
+                    height: 200,
+                    fit: BoxFit.contain,
+                  ),
           ),
           const SizedBox(height: 16),
           Row(

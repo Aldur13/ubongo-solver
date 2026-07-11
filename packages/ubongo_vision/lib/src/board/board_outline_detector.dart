@@ -63,7 +63,8 @@ Future<BoardDetectionResult> detectBoardShapeDebug(
   // invert:true -- light pixels (the board's printed cells) are what we
   // want as foreground, not the usual dark-ink-on-light-page convention.
   final lightMask = Silhouette.otsuThreshold(downscaled, invert: true);
-  final blob = lightMask.largestComponentCropped();
+  final (mask: blob, offsetX: blobOffsetX, offsetY: blobOffsetY) =
+      lightMask.largestComponentWithOffset();
 
   BoardDetectionResult reject(
     String reason, {
@@ -124,8 +125,24 @@ Future<BoardDetectionResult> detectBoardShapeDebug(
     );
   }
 
+  // The lattice's coordinates are local to the cropped blob; add the
+  // blob's offset within the (downscaled) photo, then normalize by the
+  // photo's dimensions so the region is resolution-independent — the app
+  // applies it to the full-resolution photo.
+  final boardRegion = NormalizedRect(
+    left: ((blobOffsetX + geometry.originX) / downscaled.width).clamp(0.0, 1.0),
+    top: ((blobOffsetY + geometry.originY) / downscaled.height).clamp(0.0, 1.0),
+    width: (geometry.cols * geometry.pitchX / downscaled.width).clamp(0.0, 1.0),
+    height: (geometry.rows * geometry.pitchY / downscaled.height).clamp(0.0, 1.0),
+  );
+
   return BoardDetectionResult(
-    shape: DetectedBoardShape(width: geometry.cols, height: geometry.rows, cells: cells),
+    shape: DetectedBoardShape(
+      width: geometry.cols,
+      height: geometry.rows,
+      cells: cells,
+      boardRegion: boardRegion,
+    ),
     diagnostics: BoardDetectionDiagnostics(
       downscaled: downscaled,
       lightMask: lightMask,

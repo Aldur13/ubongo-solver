@@ -1,5 +1,4 @@
-import 'dart:typed_data';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,11 +14,17 @@ import '../widgets/size_stepper.dart';
 /// a tappable grid on top.
 ///
 /// When reached after a scan whose auto-detection succeeded
-/// ([ScannedBoardData.detectedShape] non-null), the grid opens
+/// ([ScannedBoardData.detectedShape] non-null), the photo shown is
+/// cropped to the detection's [DetectedBoardShape.boardRegion] — the
+/// exact lattice area cell classification sampled — so the tap-grid's
+/// cells sit over the printed squares they were judged from (the full
+/// card photo also contains the piece-icon strip and margins, which made
+/// an uncropped photo impossible to line a grid up with). The grid opens
 /// pre-filled with the detected outline and shows a banner framing it as
 /// a hypothesis to confirm or fix, not settled fact — tapping cells here
 /// always works exactly the same way either way, so this doubles as the
-/// full manual-entry experience when detection wasn't available/failed.
+/// full manual-entry experience when detection wasn't available/failed
+/// (then showing the whole photo as before).
 /// Whatever the user ends up submitting is diffed against the original
 /// detection (if any) to nudge future detections — see
 /// `state/board_calibration.dart`.
@@ -32,12 +37,21 @@ class GridMarkupScreen extends ConsumerStatefulWidget {
 }
 
 class _GridMarkupScreenState extends ConsumerState<GridMarkupScreen> {
-  late final Uint8List _pngBytes;
+  Uint8List? _pngBytes;
 
   @override
   void initState() {
     super.initState();
-    _pngBytes = encodePngFromRgbImage(widget.data.corrected.image);
+    // Cropped (when detection located the board) and downscaled to
+    // display size off the UI isolate — synchronously PNG-encoding the
+    // full-resolution photo here froze screen entry, and painting the
+    // resulting full-size texture made every cell-toggle frame heavy.
+    encodeDisplayPngAsync(DisplayPngArgs(
+      widget.data.corrected.image,
+      crop: widget.data.detectedShape?.boardRegion,
+    )).then((bytes) {
+      if (mounted) setState(() => _pngBytes = bytes);
+    });
   }
 
   void _confirmAndSolve() {
@@ -134,7 +148,10 @@ class _GridMarkupScreenState extends ConsumerState<GridMarkupScreen> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.memory(_pngBytes, fit: BoxFit.fill),
+                      if (_pngBytes == null)
+                        const Center(child: CircularProgressIndicator())
+                      else
+                        Image.memory(_pngBytes!, fit: BoxFit.fill),
                       GridOverlayWidget(
                         width: session.gridWidth,
                         height: session.gridHeight,

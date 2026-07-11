@@ -114,7 +114,15 @@ class Silhouette {
   /// its own tightly cropped mask (background elsewhere discarded). Used
   /// to pull one clean piece-icon shape out of a binarized crop that may
   /// contain stray specks or a partial neighboring icon.
-  Silhouette largestComponentCropped() {
+  Silhouette largestComponentCropped() => largestComponentWithOffset().mask;
+
+  /// Same as [largestComponentCropped], but also reports where the crop
+  /// sits within this mask ([offsetX], [offsetY] of the component's
+  /// bounding box) — board-outline detection needs the detected region's
+  /// *location* in the photo, not just its shape, to tell the app which
+  /// part of the photo to show under the tap-correction grid. Offsets are
+  /// (0, 0) for an all-background mask (the returned 1x1 empty mask).
+  ({Silhouette mask, int offsetX, int offsetY}) largestComponentWithOffset() {
     final visited = List<bool>.filled(width * height, false);
     List<int>? best;
 
@@ -146,7 +154,9 @@ class Silhouette {
       }
     }
 
-    if (best == null) return Silhouette.filled(1, 1, false);
+    if (best == null) {
+      return (mask: Silhouette.filled(1, 1, false), offsetX: 0, offsetY: 0);
+    }
 
     var minX = width, maxX = 0, minY = height, maxY = 0;
     for (final idx in best) {
@@ -165,7 +175,7 @@ class Silhouette {
       final y = idx ~/ width;
       cropped[(y - minY) * w + (x - minX)] = true;
     }
-    return Silhouette(w, h, cropped);
+    return (mask: Silhouette(w, h, cropped), offsetX: minX, offsetY: minY);
   }
 
   /// Fills any background region fully enclosed by foreground pixels —
