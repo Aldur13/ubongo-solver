@@ -27,6 +27,42 @@ void main() {
     });
   });
 
+  group('Silhouette.otsuThreshold', () {
+    test('separates foreground from background even when both are darker than a fixed 128 threshold', () {
+      // Simulates a dim/underexposed real photo: both tones sit well
+      // below the fixed default threshold, so Silhouette.threshold can't
+      // tell them apart at all, but they're still the image's own two
+      // dominant tone clusters -- exactly what Otsu is for.
+      final image = RgbImage.blank(10, 10, r: 60, g: 60, b: 60);
+      for (var y = 2; y < 6; y++) {
+        for (var x = 2; x < 6; x++) {
+          image.setPixel(x, y, 10, 10, 10);
+        }
+      }
+
+      final fixedMask = Silhouette.threshold(image);
+      expect(fixedMask.foregroundCount, 100); // everything misclassified as foreground
+
+      final otsuMask = Silhouette.otsuThreshold(image);
+      expect(otsuMask.foregroundCount, 16);
+      expect(otsuMask.at(3, 3), isTrue);
+      expect(otsuMask.at(0, 0), isFalse);
+    });
+
+    test('invert:true treats the lighter tone as foreground', () {
+      final image = RgbImage.blank(10, 10, r: 60, g: 60, b: 60);
+      for (var y = 2; y < 6; y++) {
+        for (var x = 2; x < 6; x++) {
+          image.setPixel(x, y, 220, 220, 220);
+        }
+      }
+
+      final mask = Silhouette.otsuThreshold(image, invert: true);
+      expect(mask.at(3, 3), isTrue); // the lighter block
+      expect(mask.at(0, 0), isFalse); // the darker background
+    });
+  });
+
   group('Silhouette.largestComponentCropped', () {
     test('isolates the bigger of two disconnected components, cropped to it', () {
       final image = RgbImage.blank(20, 20);

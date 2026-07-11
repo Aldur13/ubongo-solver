@@ -38,14 +38,76 @@ class Silhouette {
     final pixels = List<bool>.filled(image.width * image.height, false);
     for (var y = 0; y < image.height; y++) {
       for (var x = 0; x < image.width; x++) {
-        final (r, g, b, _) = image.pixelAt(x, y);
-        final luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+        final luminance = _luminance(image, x, y);
         final isForeground =
             invert ? luminance >= threshold : luminance < threshold;
         pixels[y * image.width + x] = isForeground;
       }
     }
     return Silhouette(image.width, image.height, pixels);
+  }
+
+  /// Thresholds an [RgbImage] the same way as [Silhouette.threshold], but
+  /// picks the split point automatically per photo via Otsu's method
+  /// (the luminance value maximizing between-class variance across the
+  /// image's own 256-bin luminance histogram) instead of a fixed constant.
+  /// A single global constant (128) was tuned against nothing but a flat
+  /// synthetic render — real phone photos vary in overall exposure photo
+  /// to photo (dim room vs. window light), which a fixed threshold can't
+  /// compensate for; Otsu picks the split that actually separates this
+  /// photo's own two dominant tone clusters.
+  factory Silhouette.otsuThreshold(RgbImage image, {bool invert = false}) {
+    final total = image.width * image.height;
+    final luminances = List<int>.filled(total, 0);
+    final histogram = List<int>.filled(256, 0);
+    for (var y = 0; y < image.height; y++) {
+      for (var x = 0; x < image.width; x++) {
+        final l = _luminance(image, x, y).round().clamp(0, 255);
+        luminances[y * image.width + x] = l;
+        histogram[l]++;
+      }
+    }
+
+    var sumAll = 0.0;
+    for (var t = 0; t < 256; t++) {
+      sumAll += t * histogram[t];
+    }
+
+    var weightBackground = 0;
+    var sumBackground = 0.0;
+    var bestVariance = -1.0;
+    var bestThreshold = 128;
+    for (var t = 0; t < 256; t++) {
+      weightBackground += histogram[t];
+      if (weightBackground == 0) continue;
+      final weightForeground = total - weightBackground;
+      if (weightForeground == 0) break;
+
+      sumBackground += t * histogram[t];
+      final meanBackground = sumBackground / weightBackground;
+      final meanForeground = (sumAll - sumBackground) / weightForeground;
+      final meanDelta = meanBackground - meanForeground;
+      final betweenClassVariance = weightBackground * weightForeground * meanDelta * meanDelta;
+
+      if (betweenClassVariance > bestVariance) {
+        bestVariance = betweenClassVariance;
+        // fitGridLines-style boundary convention: threshold t means
+        // "foreground if luminance < t" (see Silhouette.threshold), so the
+        // split sits just above this bin.
+        bestThreshold = t + 1;
+      }
+    }
+
+    final pixels = List<bool>.filled(total, false);
+    for (var i = 0; i < total; i++) {
+      pixels[i] = invert ? luminances[i] >= bestThreshold : luminances[i] < bestThreshold;
+    }
+    return Silhouette(image.width, image.height, pixels);
+  }
+
+  static double _luminance(RgbImage image, int x, int y) {
+    final (r, g, b, _) = image.pixelAt(x, y);
+    return 0.299 * r + 0.587 * g + 0.114 * b;
   }
 
   /// Isolates the largest 4-connected foreground component, returned as

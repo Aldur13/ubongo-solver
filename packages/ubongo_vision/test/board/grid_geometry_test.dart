@@ -97,4 +97,67 @@ void main() {
       expect(detectGridGeometry(mask), isNull);
     });
   });
+
+  group('clusterBoundaryPositions', () {
+    test('merges positions within tolerance into one cluster', () {
+      final clusters = clusterBoundaryPositions([10.0, 10.5, 11.2, 50.0, 50.3], mergeTolerance: 3);
+
+      expect(clusters, hasLength(2));
+      expect(clusters[0].position, closeTo(10.57, 0.1));
+      expect(clusters[0].weight, 3);
+      expect(clusters[1].position, closeTo(50.15, 0.1));
+      expect(clusters[1].weight, 2);
+    });
+
+    test('keeps positions farther apart than tolerance as separate clusters', () {
+      final clusters = clusterBoundaryPositions([0.0, 10.0, 20.0], mergeTolerance: 3);
+      expect(clusters.map((c) => c.position), [0.0, 10.0, 20.0]);
+      expect(clusters.every((c) => c.weight == 1), isTrue);
+    });
+
+    test('empty input returns no clusters', () {
+      expect(clusterBoundaryPositions(const []), isEmpty);
+    });
+  });
+
+  group('detectGridGeometryFromMask', () {
+    Silhouette maskOf(int width, int height, int cellPitch, int originX, int originY, Set<(int, int)> cells) {
+      final mask = Silhouette.filled(width, height, false);
+      for (final (row, col) in cells) {
+        for (var y = originY + row * cellPitch; y < originY + (row + 1) * cellPitch; y++) {
+          for (var x = originX + col * cellPitch; x < originX + (col + 1) * cellPitch; x++) {
+            mask.set(x, y, true);
+          }
+        }
+      }
+      return mask;
+    }
+
+    test('recovers pitch and dimensions from an L-shaped filled region', () {
+      const pitch = 20;
+      const originX = 10;
+      const originY = 10;
+      // An L-shape within a 4x4 notional grid.
+      final cells = {(0, 0), (1, 0), (2, 0), (2, 1), (2, 2)};
+      final mask = maskOf(120, 120, pitch, originX, originY, cells);
+
+      final geometry = detectGridGeometryFromMask(mask);
+
+      expect(geometry, isNotNull);
+      expect(geometry!.pitchX, closeTo(pitch, 1));
+      expect(geometry.pitchY, closeTo(pitch, 1));
+    });
+
+    test('returns null for a solid rectangle (no internal boundary structure to derive a pitch from)', () {
+      const pitch = 20;
+      final cells = {for (var r = 0; r < 3; r++) for (var col = 0; col < 3; col++) (r, col)};
+      final mask = maskOf(120, 120, pitch, 10, 10, cells);
+
+      expect(detectGridGeometryFromMask(mask), isNull);
+    });
+
+    test('returns null for an empty mask', () {
+      expect(detectGridGeometryFromMask(Silhouette.filled(50, 50, false)), isNull);
+    });
+  });
 }

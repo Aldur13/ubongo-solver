@@ -1,6 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:ubongo_core/ubongo_core.dart';
 
+/// Minimum on-screen size (in logical pixels) a tappable cell should ever
+/// be rendered at — Material's own minimum recommended touch target.
+/// Callers that let [GridOverlayWidget] size itself down to fit a screen
+/// (e.g. a 10+-column grid on a narrow phone) should instead give this
+/// widget a fixed size of at least `width/height * kMinGridCellSize` per
+/// axis and let the user pan/zoom (e.g. via `InteractiveViewer`) rather
+/// than shrinking cells past this — see `GridMarkupScreen` and
+/// `ManualEntryScreen` for the pattern.
+const kMinGridCellSize = 48.0;
+
 /// A [width] x [height] grid, shared by the manual board-markup screens
 /// (interactive: tapping toggles a cell) and the solution screen
 /// (read-only: cells colored/labeled by piece placement).

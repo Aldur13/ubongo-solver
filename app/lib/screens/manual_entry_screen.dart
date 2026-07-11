@@ -48,11 +48,27 @@ class ManualEntryScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 8),
-          GridOverlayWidget(
-            width: session.gridWidth,
-            height: session.gridHeight,
-            filledCells: session.boardCells,
-            onCellTap: notifier.toggleCell,
+          // Same tap-target fix as GridMarkupScreen: a fixed pixel size of
+          // at least kMinGridCellSize per cell, pannable/zoomable within a
+          // bounded viewport, instead of shrinking cells to fit the width.
+          SizedBox(
+            height: 360,
+            child: InteractiveViewer(
+              constrained: false,
+              minScale: 0.5,
+              maxScale: 4,
+              child: SizedBox(
+                width: session.gridWidth * kMinGridCellSize,
+                height: session.gridHeight * kMinGridCellSize,
+                child: GridOverlayWidget(
+                  width: session.gridWidth,
+                  height: session.gridHeight,
+                  useAspectRatio: false,
+                  filledCells: session.boardCells,
+                  onCellTap: notifier.toggleCell,
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 24),
           PieceSelector(

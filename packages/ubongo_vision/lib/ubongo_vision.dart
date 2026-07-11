@@ -1,5 +1,6 @@
 export 'src/board/board_outline_detector.dart';
 export 'src/board/detected_board_shape.dart';
+export 'src/board/detection_diagnostics.dart';
 export 'src/board/detection_params.dart';
 export 'src/board/grid_geometry.dart';
 export 'src/perspective/card_scanner.dart';

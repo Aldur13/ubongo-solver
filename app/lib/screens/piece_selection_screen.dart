@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:ubongo_core/ubongo_core.dart';
 import 'package:ubongo_vision/ubongo_vision.dart';
 
@@ -43,6 +44,22 @@ class PieceSelectionScreen extends ConsumerStatefulWidget {
 class _PieceSelectionScreenState extends ConsumerState<PieceSelectionScreen> {
   bool _detecting = false;
 
+  /// Debug-only export of exactly what `NativeScannerImpl` produced, so a
+  /// real device's scan can be pulled off the phone and inspected with
+  /// `tool/inspect_card.dart` — see the project plan's board-outline
+  /// scanning fix, Phase 1b: this is the only way to tell whether the
+  /// native document scanner's crop/perspective correction (not this
+  /// screen's own board-outline detection) is the source of a bad scan.
+  Future<void> _shareCorrectedPhoto() async {
+    final bytes = encodePngFromRgbImage(widget.corrected.image);
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile.fromData(bytes, mimeType: 'image/png', name: 'ubongo_scan.png')],
+        text: 'Ubongo Solver debug scan export',
+      ),
+    );
+  }
+
   Future<void> _continue() async {
     setState(() => _detecting = true);
 
@@ -76,7 +93,17 @@ class _PieceSelectionScreenState extends ConsumerState<PieceSelectionScreen> {
     ref.watch(puzzleSessionProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Select Pieces')),
+      appBar: AppBar(
+        title: const Text('Select Pieces'),
+        actions: [
+          if (kDebugMode)
+            IconButton(
+              icon: const Icon(Icons.ios_share),
+              tooltip: 'Share corrected scan (debug)',
+              onPressed: _shareCorrectedPhoto,
+            ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

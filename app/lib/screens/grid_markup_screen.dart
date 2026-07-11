@@ -119,21 +119,32 @@ class _GridMarkupScreenState extends ConsumerState<GridMarkupScreen> {
               ),
             const SizedBox(height: 8),
             Expanded(
-              child: AspectRatio(
-                aspectRatio: session.gridWidth / session.gridHeight,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image.memory(_pngBytes, fit: BoxFit.fill),
-                    GridOverlayWidget(
-                      width: session.gridWidth,
-                      height: session.gridHeight,
-                      useAspectRatio: false,
-                      filledCells: session.boardCells,
-                      cellColors: {for (final c in session.boardCells) c: overlayColor},
-                      onCellTap: notifier.toggleCell,
-                    ),
-                  ],
+              // constrained: false + a fixed pixel size keeps every cell at
+              // least kMinGridCellSize regardless of grid dimensions or
+              // screen width — a grid that doesn't fit the viewport at that
+              // size is pannable/zoomable instead of shrinking cells below
+              // a tappable size (see kMinGridCellSize's doc comment).
+              child: InteractiveViewer(
+                constrained: false,
+                minScale: 0.5,
+                maxScale: 4,
+                child: SizedBox(
+                  width: session.gridWidth * kMinGridCellSize,
+                  height: session.gridHeight * kMinGridCellSize,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.memory(_pngBytes, fit: BoxFit.fill),
+                      GridOverlayWidget(
+                        width: session.gridWidth,
+                        height: session.gridHeight,
+                        useAspectRatio: false,
+                        filledCells: session.boardCells,
+                        cellColors: {for (final c in session.boardCells) c: overlayColor},
+                        onCellTap: notifier.toggleCell,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

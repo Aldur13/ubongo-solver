@@ -1,96 +1,56 @@
 import 'package:ubongo_core/ubongo_core.dart';
-import 'package:ubongo_vision/ubongo_vision.dart';
+import 'package:ubongo_vision/src/rgb_image.dart';
 
-/// Renders a synthetic "photo" of a puzzle card: a light canvas, a thin
-/// grid of lines at a known pitch/offset spanning `gridWidth x
-/// gridHeight` cells, and a bold outline traced around [outlineCells]'
-/// edges. Test-only — the mirror image of
-/// `piece_catalog_renderer.dart`'s synthetic piece rendering (production
-/// code), but for a whole board/card instead of a single piece.
+/// Renders a synthetic "photo" of a puzzle card matching how real Ubongo
+/// cards are actually printed and how board-outline detection actually
+/// reads them: a plain, non-light background, with the puzzle outline
+/// shown as a solid light-colored region — no grid is drawn outside the
+/// outline, and (confirmed against real card photos: internal cell-
+/// divider lines are printed too faint to survive binary light/dark
+/// thresholding, merging into one solid connected region either way) no
+/// internal lines are drawn between cells within the outline either.
+/// Detection derives the grid pitch entirely from the outline region's
+/// own boundary shape (its notches/steps), not from a separately-printed
+/// grid — see `board_outline_detector.dart` and
+/// `grid_geometry.dart#detectGridGeometryFromMask`. Test-only.
 RgbImage renderSyntheticCard({
   required int gridWidth,
   required int gridHeight,
   required Set<CellCoord> outlineCells,
-  int cellPixels = 30,
+  int cellPixels = 40,
   int canvasMargin = 40,
-  int thinLineWidth = 1,
-  int boldLineWidth = 5,
   int? gridOffsetX,
   int? gridOffsetY,
-  List<(int x, int y, int size)> decoyBlobs = const [],
+  /// Extra light-colored rectangles elsewhere on the canvas, unconnected
+  /// to the outline — tests that the largest-connected-component step
+  /// correctly ignores a smaller stray light region.
+  List<(int x, int y, int width, int height)> decoyLightPatches = const [],
 }) {
   final offsetX = gridOffsetX ?? canvasMargin;
   final offsetY = gridOffsetY ?? canvasMargin;
   final canvasWidth = offsetX + gridWidth * cellPixels + canvasMargin;
   final canvasHeight = offsetY + gridHeight * cellPixels + canvasMargin;
 
-  final image = RgbImage.blank(canvasWidth, canvasHeight);
+  // A mid-tone, unambiguously non-light background -- distinct from the
+  // light cell fill by more than any reasonable Otsu split point.
+  final image = RgbImage.blank(canvasWidth, canvasHeight, r: 150, g: 90, b: 40);
 
-  void drawThickLine(int x0, int y0, int x1, int y1, int lineWidth) {
-    final half = lineWidth ~/ 2;
-    if (y0 == y1) {
-      for (var x = x0; x <= x1; x++) {
-        for (var dy = -half; dy <= half; dy++) {
-          final y = y0 + dy;
-          if (x >= 0 && x < canvasWidth && y >= 0 && y < canvasHeight) {
-            image.setPixel(x, y, 0, 0, 0);
-          }
-        }
-      }
-    } else {
-      for (var y = y0; y <= y1; y++) {
-        for (var dx = -half; dx <= half; dx++) {
-          final x = x0 + dx;
-          if (x >= 0 && x < canvasWidth && y >= 0 && y < canvasHeight) {
-            image.setPixel(x, y, 0, 0, 0);
-          }
-        }
+  void fillRect(int left, int top, int width, int height) {
+    for (var y = top; y < top + height; y++) {
+      if (y < 0 || y >= canvasHeight) continue;
+      for (var x = left; x < left + width; x++) {
+        if (x < 0 || x >= canvasWidth) continue;
+        image.setPixel(x, y, 235, 235, 235);
       }
     }
   }
 
-  for (var col = 0; col <= gridWidth; col++) {
-    final x = offsetX + col * cellPixels;
-    drawThickLine(x, offsetY, x, offsetY + gridHeight * cellPixels, thinLineWidth);
-  }
-  for (var row = 0; row <= gridHeight; row++) {
-    final y = offsetY + row * cellPixels;
-    drawThickLine(offsetX, y, offsetX + gridWidth * cellPixels, y, thinLineWidth);
-  }
-
-  // Bold outline: for each outline cell, draw a bold edge on every side
-  // whose neighbor isn't also part of the outline (or is off-grid) — this
-  // traces exactly the polyomino's boundary as one connected loop.
   for (final cell in outlineCells) {
-    final left = offsetX + cell.col * cellPixels;
-    final top = offsetY + cell.row * cellPixels;
-    final right = left + cellPixels;
-    final bottom = top + cellPixels;
-
-    if (!outlineCells.contains(CellCoord(cell.row, cell.col - 1))) {
-      drawThickLine(left, top, left, bottom, boldLineWidth);
-    }
-    if (!outlineCells.contains(CellCoord(cell.row, cell.col + 1))) {
-      drawThickLine(right, top, right, bottom, boldLineWidth);
-    }
-    if (!outlineCells.contains(CellCoord(cell.row - 1, cell.col))) {
-      drawThickLine(left, top, right, top, boldLineWidth);
-    }
-    if (!outlineCells.contains(CellCoord(cell.row + 1, cell.col))) {
-      drawThickLine(left, bottom, right, bottom, boldLineWidth);
-    }
+    fillRect(offsetX + cell.col * cellPixels, offsetY + cell.row * cellPixels, cellPixels, cellPixels);
   }
 
-  for (final (x, y, size) in decoyBlobs) {
-    for (var dy = 0; dy < size; dy++) {
-      for (var dx = 0; dx < size; dx++) {
-        final px = x + dx;
-        final py = y + dy;
-        if (px >= 0 && px < canvasWidth && py >= 0 && py < canvasHeight) {
-          image.setPixel(px, py, 0, 0, 0);
-        }
-      }
-    }
+  for (final (x, y, width, height) in decoyLightPatches) {
+    fillRect(x, y, width, height);
   }
 
   return image;
