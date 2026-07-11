@@ -118,6 +118,30 @@ void main() {
     test('empty input returns no clusters', () {
       expect(clusterBoundaryPositions(const []), isEmpty);
     });
+
+    test('does not chain through a moderately dense scatter of noise into one giant cluster', () {
+      // Every consecutive gap here is exactly at the default mergeTolerance
+      // (3), so plain nearest-neighbor chaining would fuse all of these --
+      // spanning 0 to 30 -- into a single "cluster" even though no real
+      // printed edge would ever wobble across a 30px range. A cluster's
+      // reported weight should never be able to exceed what a single real
+      // edge could plausibly contribute.
+      final scattered = [for (var i = 0; i <= 30; i += 3) i.toDouble()];
+      final clusters = clusterBoundaryPositions(scattered, mergeTolerance: 3);
+
+      expect(clusters.length, greaterThan(1));
+      for (final cluster in clusters) {
+        expect(cluster.weight, lessThan(scattered.length));
+      }
+    });
+
+    test('a single wobbly-but-tight edge still merges into one cluster', () {
+      final wobble = [40.0, 41.5, 39.0, 42.0, 40.8];
+      final clusters = clusterBoundaryPositions(wobble, mergeTolerance: 3);
+
+      expect(clusters, hasLength(1));
+      expect(clusters.single.weight, wobble.length);
+    });
   });
 
   group('detectGridGeometryFromMask', () {

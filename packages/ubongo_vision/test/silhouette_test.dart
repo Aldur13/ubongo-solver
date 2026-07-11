@@ -63,6 +63,43 @@ void main() {
     });
   });
 
+  group('Silhouette.lightNeutralRegion', () {
+    test('rejects a saturated mid-luminance region that plain Otsu would include as "light"', () {
+      // Confirmed on a real card scan: an orange background (saturated,
+      // medium luminance) sat close enough to a light-gray cell's
+      // luminance that Otsu's single brightness split grouped them
+      // together, merging the board's outline with its own background
+      // into one connected region and breaking pitch detection entirely.
+      // Orange background's luminance (~171) is deliberately close to the
+      // light cell's (230) and far from the dark region's (20) -- close
+      // enough, at real-photo-like proportions (background as the
+      // dominant area), that Otsu's variance-maximizing split lands
+      // between dark and (orange + light) rather than between (dark +
+      // orange) and light.
+      final image = RgbImage.blank(30, 30, r: 230, g: 160, b: 70); // saturated orange
+      for (var y = 2; y < 12; y++) {
+        for (var x = 2; x < 12; x++) {
+          image.setPixel(x, y, 230, 230, 230); // light, near-neutral cell
+        }
+      }
+      for (var y = 20; y < 28; y++) {
+        for (var x = 20; x < 28; x++) {
+          image.setPixel(x, y, 20, 20, 20); // dark icon-strip background
+        }
+      }
+
+      // Sanity check the premise: plain Otsu really does merge the
+      // orange background in with the light cell here.
+      final otsuOnly = Silhouette.otsuThreshold(image, invert: true);
+      expect(otsuOnly.at(0, 0), isTrue); // orange background misclassified as foreground
+
+      final mask = Silhouette.lightNeutralRegion(image);
+      expect(mask.at(5, 5), isTrue); // the light-gray cell
+      expect(mask.at(0, 0), isFalse); // orange background correctly excluded
+      expect(mask.at(24, 24), isFalse); // dark background excluded
+    });
+  });
+
   group('Silhouette.largestComponentCropped', () {
     test('isolates the bigger of two disconnected components, cropped to it', () {
       final image = RgbImage.blank(20, 20);

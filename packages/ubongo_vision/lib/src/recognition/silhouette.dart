@@ -105,6 +105,45 @@ class Silhouette {
     return Silhouette(image.width, image.height, pixels);
   }
 
+  /// Marks near-neutral (low-saturation), light pixels as foreground —
+  /// specifically the printed board's light-gray cells, as distinct from
+  /// *everything else* on a real card: the saturated orange background,
+  /// the saturated colored piece icons, and the dark piece-icon-strip
+  /// background.
+  ///
+  /// [Silhouette.otsuThreshold] alone assumes the photo has exactly two
+  /// luminance clusters (dark ink vs. light page) — real card photos
+  /// actually have (at least) three: dark icon-strip background, the
+  /// orange board background sitting at a *medium* luminance, and the
+  /// light cells. Otsu can only draw one split line, and depending on
+  /// each photo's exact exposure and the relative pixel counts of each
+  /// region, that line sometimes lands between icon-strip and background
+  /// rather than between background and cells — confirmed on a real scan
+  /// where the background's medium luminance ended up grouped with the
+  /// light cells, merging them into one connected region. Saturation
+  /// doesn't have this ambiguity: the background and colored icons are
+  /// visibly saturated at any exposure, the cells aren't, so ANDing
+  /// Otsu's brightness split with a saturation ceiling rejects the
+  /// colorful regions regardless of how bright a given photo makes them.
+  factory Silhouette.lightNeutralRegion(
+    RgbImage image, {
+    double maxSaturation = 0.25,
+  }) {
+    final brightMask = Silhouette.otsuThreshold(image, invert: true);
+    final pixels = List<bool>.filled(image.width * image.height, false);
+    for (var y = 0; y < image.height; y++) {
+      for (var x = 0; x < image.width; x++) {
+        if (!brightMask.at(x, y)) continue;
+        final (r, g, b, _) = image.pixelAt(x, y);
+        final maxChannel = r > g ? (r > b ? r : b) : (g > b ? g : b);
+        final minChannel = r < g ? (r < b ? r : b) : (g < b ? g : b);
+        final saturation = maxChannel == 0 ? 0.0 : (maxChannel - minChannel) / maxChannel;
+        pixels[y * image.width + x] = saturation <= maxSaturation;
+      }
+    }
+    return Silhouette(image.width, image.height, pixels);
+  }
+
   static double _luminance(RgbImage image, int x, int y) {
     final (r, g, b, _) = image.pixelAt(x, y);
     return 0.299 * r + 0.587 * g + 0.114 * b;

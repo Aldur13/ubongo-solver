@@ -60,9 +60,12 @@ Future<BoardDetectionResult> detectBoardShapeDebug(
   DetectionParams params = const DetectionParams(),
 }) async {
   final downscaled = image.downscaled(maxDimension: maxBoardAnalysisDimension);
-  // invert:true -- light pixels (the board's printed cells) are what we
-  // want as foreground, not the usual dark-ink-on-light-page convention.
-  final lightMask = Silhouette.otsuThreshold(downscaled, invert: true);
+  // Light AND near-neutral -- rejects the saturated orange background and
+  // colored piece icons that plain luminance thresholding can (on some
+  // photos) misclassify alongside the actual light-gray board cells; see
+  // Silhouette.lightNeutralRegion's doc comment for what real-photo
+  // evidence drove this.
+  final lightMask = Silhouette.lightNeutralRegion(downscaled);
   final (mask: blob, offsetX: blobOffsetX, offsetY: blobOffsetY) =
       lightMask.largestComponentWithOffset();
 

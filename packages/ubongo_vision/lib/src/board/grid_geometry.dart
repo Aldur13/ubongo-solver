@@ -274,21 +274,34 @@ class BoundaryCluster {
 /// splits that wobble across several adjacent bins, none of which may
 /// clear a global noise floor on their own. Clustering the raw
 /// transition positions directly (sort, then split wherever a gap
-/// exceeds [mergeTolerance]) tolerates that wobble by construction: every
-/// sample from one wobbly edge is within [mergeTolerance] of its
-/// neighbor in sorted order, so it survives as one cluster regardless of
-/// how spread out it is, as long as it's internally contiguous.
+/// exceeds [mergeTolerance]) tolerates that wobble by construction.
+///
+/// A cluster additionally can't grow past [maxClusterSpan] from its own
+/// first (lowest) member, even if every consecutive gap along the way is
+/// within [mergeTolerance] — plain nearest-neighbor chaining (merge
+/// whenever adjacent-in-sorted-order points are close) has no such cap,
+/// and a moderate scatter of real-photo noise (icon-strip contamination,
+/// anti-aliasing) is often just dense enough that consecutive noise
+/// points stay within tolerance of each other across a huge span,
+/// silently fusing many unrelated edges into one nonsense "cluster" —
+/// caught during real-photo testing by a cluster's reported weight
+/// exceeding the mask's own height/width, which is otherwise impossible.
 List<BoundaryCluster> clusterBoundaryPositions(
   List<double> positions, {
   double mergeTolerance = 3,
+  double? maxClusterSpan,
 }) {
   if (positions.isEmpty) return const [];
+  final span = maxClusterSpan ?? mergeTolerance * 2;
   final sorted = [...positions]..sort();
 
   final clusters = <BoundaryCluster>[];
   var groupStart = 0;
   for (var i = 1; i <= sorted.length; i++) {
-    if (i == sorted.length || sorted[i] - sorted[i - 1] > mergeTolerance) {
+    final atEnd = i == sorted.length;
+    final tooFarFromNeighbor = !atEnd && sorted[i] - sorted[i - 1] > mergeTolerance;
+    final tooFarFromGroupStart = !atEnd && sorted[i] - sorted[groupStart] > span;
+    if (atEnd || tooFarFromNeighbor || tooFarFromGroupStart) {
       final group = sorted.sublist(groupStart, i);
       final mean = group.reduce((a, b) => a + b) / group.length;
       clusters.add(BoundaryCluster(mean, group.length));
