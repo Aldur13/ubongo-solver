@@ -39,7 +39,7 @@ void main() {
 
   group('Hu moments distinguish different shapes', () {
     test('two visually different pentominoes are far apart', () {
-      final t = UbongoCatalog.classic.firstWhere((p) => p.id == 'P11'); // T-ish
+      final t = UbongoCatalog.classic.firstWhere((p) => p.id == 'P11'); // Y-ish
       final z = UbongoCatalog.classic.firstWhere((p) => p.id == 'P12'); // Z-ish
       final tMoments = computeHuMoments(renderCells(t.cells));
       final zMoments = computeHuMoments(renderCells(z.cells));

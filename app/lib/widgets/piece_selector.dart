@@ -12,6 +12,16 @@ const _palette = [
   Color(0xFF2FA8A8),
 ];
 
+// P11 is overridden to orange (rather than the purple its catalog index
+// would otherwise cycle to) per user request; every other piece keeps its
+// palette-cycle color.
+const _colorOverrides = {
+  'P11': Color(0xFFE68A2E),
+};
+
+Color _colorFor(int index, String pieceId) =>
+    _colorOverrides[pieceId] ?? _palette[index % _palette.length];
+
 /// The "Required pieces" picker: for each catalog piece, a shape diagram
 /// (see [PieceShapeThumbnail] — deliberately a diagram, not a photo, since
 /// the shapes are exact but the catalog is a placeholder) plus a +/-
@@ -56,7 +66,7 @@ class PieceSelector extends StatelessWidget {
           _PieceCountRow(
             thumbnail: PieceShapeThumbnail(
               cells: catalog[i].cells,
-              color: _palette[i % _palette.length],
+              color: _colorFor(i, catalog[i].id),
             ),
             label: '${catalog[i].id} — ${catalog[i].name} (${catalog[i].cellCount} cells)',
             count: solidCountOf(catalog[i]),

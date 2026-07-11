@@ -70,8 +70,8 @@ class UbongoCatalog {
     Piece(id: 'P10', name: 'placeholder-pentomino-L', cells: {
       _c(0, 0), _c(1, 0), _c(2, 0), _c(3, 0), _c(3, 1),
     }),
-    Piece(id: 'P11', name: 'placeholder-pentomino-T', cells: {
-      _c(0, 0), _c(0, 1), _c(0, 2), _c(1, 1), _c(2, 1),
+    Piece(id: 'P11', name: 'placeholder-pentomino-Y', cells: {
+      _c(0, 1), _c(1, 1), _c(1, 2), _c(2, 1), _c(3, 1),
     }),
     Piece(id: 'P12', name: 'placeholder-pentomino-Z', cells: {
       _c(0, 0), _c(0, 1), _c(1, 1), _c(2, 1), _c(2, 2),

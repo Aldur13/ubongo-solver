@@ -13,7 +13,7 @@ dependencies:
   ubongo_core:
     path: ../ubongo_core
   image: ^4.5.4
-  cunning_document_scanner: ^1.2.5
+  cunning_document_scanner: ^2.6.0
 
 dev_dependencies:
   flutter_test:
